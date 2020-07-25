@@ -105,6 +105,9 @@ def main(break_limit=-1):
     # Wait until the queue is empty
     q.join()
 
+    # Close the Redis connection
+    client.close()
+
 if __name__ == '__main__':
     # For testing purposes limit the Sensor data generation
     break_limit = 10

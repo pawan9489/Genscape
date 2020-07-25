@@ -1,0 +1,79 @@
+SET var1 "Hello" // OK as reply
+GET var1 // "Hello"
+
+SET foo 100
+INCR foo // 101
+GET foo // "101"
+DECR foo // 100
+
+EXISTS foo // 1 => true
+EXISTS var2 // 0 => false
+
+DEL foo // 1 => as deleted an existing record, 0 => there is no such record
+GET bar // (nil) => there is no such record
+
+FLUSHALL // deletes every key that we SET
+
+-- Key value pairs
+SET server:name server_name
+GET server:name // "server_name"
+
+-- SET values to expire after some time
+SET greet "Hello"
+EXPIRE greet 50 // 50 seconds
+TTL greet // 42 => Time to Live, ex: greet got 42 seconds more
+// after expiration we get TTL as -2 => Expired
+
+SETEX greet 30 "Hello" // Set along with expiration - 30 seconds
+PERSIST greet // will remove the expiration on the key
+TTL greet // -1 => Will never expire
+
+-- Multiple key setting
+MSET key1 "v1" key2 "v2"
+
+APPEND key1 " value 1"
+GET key1 // "v1 value 1"
+
+-- Rename keys
+RENAME key1 k1
+
+---- LISTS
+LPUSH people "Brad" // like cons 
+LPUSH people "Jen"
+LPUSH people "Tom"
+LRANGE people 0 -1 // get complete list
+LRANGE people 1 2 // [Jen, Brad]
+RPUSH people "Harry"
+LRANGE people 0 -1 // [Tom, Jen, Brad, Harry]
+LLEN people // 4 - length of the list
+LPOP people // Tom
+RPOP people // Harry
+LINSERT people BEFORE "v1" "v2" // Insert v2 before v1
+
+---- SETS -- Test for existence O(1)
+SADD cars "Ford" // 1 - added, 0 - duplicate so not added
+SISMEMBER cars "BMW" // 0 - doesn't exist
+SMEMBERS cars // list of cars
+SCARD cars // number of elements in the set
+SMOVE cars mycars "Ford" // Remove "Ford" from cars & create or add in mycars
+SREM cars "Ford" // delete from set
+// union, intersect
+
+---- SORTED SETS -- Same as sets but each item will have a rank
+ZADD users <score> <item>
+ZADD users 1994 "Pawan"
+ZRANK users "Pawan" // 1 -- reltive ranks based on scores
+
+---- HASH
+HSET <guid> <key> <value> 
+HSET user:tom name "Tom"
+HSET user:tom email "tom@gmail.com"
+HGET user:tom name
+HGETALL user:tom
+
+HMSET <guid> <key1> <value1> <key2> <value2>
+HLEN <guid> // number of key value pairs
+
+To See all the keys
+KEYS <pattern>
+KEYS *

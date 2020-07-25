@@ -2,13 +2,14 @@ from datetime import datetime
 import logging
 import queue
 import random
+import redis
 import threading
 import uuid
 
 class Content:
     def __init__(self, temp_f):
         self.temperature = temp_f
-        self.time_of_measurement = datetime.now().isoformat()
+        self.time_of_measurement = datetime.strftime(datetime.now(), '%Y-%m-%dT%H:%M:%S')
 
     # Fahrenheit to Celcius
     def convertToCelcius(self):
@@ -26,15 +27,15 @@ class Content:
 
 class SensorData:
     def __init__(self, type, temp_f):
-        self.id = uuid.uuid1()
+        self.id = str(uuid.uuid1())
         self.type = type
         self.content = Content(temp_f)
 
     def __repr__(self):
-        return "{'id': {0}, 'type': {1}, 'content': {2}}".format(str(self.id), self.type, self.content)
+        return "{'id': {0}, 'type': {1}, 'content': {2}}".format(self.id, self.type, self.content)
 
     def __str__(self):
-        return 'SensorData(id={0}, type={1}, content={2})'.format(str(self.id), self.type, self.content)
+        return 'SensorData(id={0}, type={1}, content={2})'.format(self.id, self.type, self.content)
 
 class SensorDataGenerator:
     def __init__(self, f_min, f_max):
@@ -47,11 +48,11 @@ class SensorDataGenerator:
             yield SensorData("Sensor", r)
 
 class Persister(threading.Thread):
-    def __init__(self, queue, logger, connection_string):
+    def __init__(self, queue, logger, client):
         threading.Thread.__init__(self)
         self.queue = queue
         self.logger = logger
-        self.connection_string = connection_string
+        self.client = client
 
     def run(self):
         while True:
@@ -59,6 +60,7 @@ class Persister(threading.Thread):
             data = self.queue.get()
 
             # Put data into database
+            self.client.hset(data.id, mapping={'type': data.type, 'temperature_c': data.content.temperature, 'time_of_measurement': data.content.time_of_measurement})
             self.logger.info("DB Insertion " + str(data))
         
             # send a signal to the queue that the job is done
@@ -70,18 +72,20 @@ class Persister(threading.Thread):
 
 def main(break_limit=-1):
     # Logger to log the Thread Information
-    logging.basicConfig(level=logging.INFO, format='(%(threadName)-9s) %(message)s',)
+    logging.basicConfig(level=logging.INFO, format='[%(threadName)-9s] %(message)s',)
     logger = logging.getLogger(__name__)
 
     # Size of Queue
     BUF_SIZE = 10
     q = queue.Queue(BUF_SIZE)
 
+    # client = redis.Redis(host='localhost', port=6379)
+    client = redis.Redis('localhost')
     THREAD_COUNT = 5
     # Create 5 daemon threads
     # Consumer of data in Queue
     for _ in range(THREAD_COUNT):
-        t = Persister(q, logger, "")
+        t = Persister(q, logger, client)
         t.setDaemon(True) # No need to explicitly close the thread
         t.start()
     

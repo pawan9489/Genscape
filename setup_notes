@@ -1,0 +1,11 @@
+Version = python 3.8
+
+sudo apt install redis-server
+sudo systemctl enable redis.server // Enabled by default
+redis-cli // For testing type 'ping' & u see PONG as reply
+
+Running tests
+    python3.8 -m unittest tests.py
+    or 
+    python3.8 tests.py
+
